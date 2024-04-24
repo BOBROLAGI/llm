@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  redis:
+    env_file:
+      - .env
+    image: redis/redis-stack:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis_vectors-cli", "--raw", "incr", "ping" ]
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PORT=${REDIS_PORT}
+
+volumes:
+  redis_data:
