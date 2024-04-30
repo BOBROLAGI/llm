@@ -9,11 +9,16 @@ from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 from redis.commands.search.query import Query
 from models.embedder import Embedder
 import os
+from typing import List
+from dotenv import load_dotenv
+
+load_dotenv()
+os.environ.get('REDIS_PASSWORD')
 
 
 class RedisClient:
-    def __init__(self, HOST=os.environ.get('REDIS_HOST'), PORT=os.environ.get('REDIS_PORT')
-                 , PASSWORD=os.environ.get('REDIS_PASSWORD'), model: Embedder = None):
+    def __init__(self, HOST=os.environ.get('REDIS_HOST'), PORT=int(os.environ.get('REDIS_PORT'))
+                 , PASSWORD=None, model: Embedder = None):
         try:
             self.client = redis.Redis(host=HOST, port=PORT, password=PASSWORD,
                                       decode_responses=True)
@@ -21,24 +26,24 @@ class RedisClient:
         except redis.RedisError:
             pass
 
-    def store_new_data(self, data: list[dict]):
+    def store_new_data(self, data: List[dict]):
         pipeline = self.client.pipeline()
         for index, program in enumerate(data):
-            redis_key = index
+            redis_key = f"document:{index}"
             pipeline.json().set(redis_key, "$", program)
         pipeline.execute()
         pipeline.reset()
 
     def create_vector_field(self):
         try:
-            self.client.ft("idx:docs").info()
-            print('Vector_Field_is_already_created')
-        except redis.exceptions:
+            print(self.client.ft("idx:docs").info())
+        except:
             vector_dim = len(self.embedding_model.get_embedding('vec'))
             schema = (
                 NumericField("$.id", as_name="id"),
                 TextField("$.question", as_name="question"),
                 TextField("$.answer", as_name="answer"),
+                TextField("$.link", as_name="link"),
                 VectorField(
                     "$.questions_embeddings",
                     "FLAT",
@@ -56,8 +61,8 @@ class RedisClient:
             )
 
     def create_embeddings(self):
-        keys = sorted(self.client.keys('document:*'))
-        question = self.client.json().mget(keys, '$.question')
+        keys = sorted(self.client.keys("document:*"))
+        question = self.client.json().mget(keys, "$.question")
         question = [item for sublist in question for item in sublist]
         embeddings = self.embedding_model.get_embedding(question)
         return keys, embeddings
