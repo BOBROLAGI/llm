@@ -5,7 +5,6 @@ from models.embedder import Embedder
 from redis_stack.redis_vector_search import RedisClient
 from rag.agent import ChatAgent
 from rag.chat_history import ChatHistory
-from data.process_output import process_output
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
