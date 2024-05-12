@@ -1,9 +1,10 @@
 from redis_stack.redis_vector_search import RedisClient
 from models.LLM import LanguageModel
+from typing import List
 
 
 class ChatAgent:
-    def __init__(self, session_id: int, language_model: LanguageModel, redis_client: RedisClient):
+    def __init__(self, session_id: str, language_model: LanguageModel, redis_client: RedisClient):
         self.session_id = session_id
         self.redis_client = redis_client
         self.language_model = language_model
@@ -30,7 +31,35 @@ class ChatAgent:
                 {"role": "user",
                  "content": question}],
 
-            temperature=0.1,
+            temperature=0.3,
+            max_tokens=2000,
+        )
+
+        return response['choices'][0]['message']['content']
+
+    def generate_summarization(self, text: str, k: str = "3-5", header='заголовка'):
+        response = self.language_model.model.create_chat_completion(
+            messages=[
+                {"role": "system",
+                 "content": self.language_model.summarization_template.format(user_prompt=text, k=k, header=header)}],
+            temperature=0.3,
+            max_tokens=10,
+        )
+        return response['choices'][0]['message']['content']
+
+    def generate_response_with_history(self, context: str, question: str, links: list, history: List[str]):
+        messages = ""
+        for message in history:
+            messages += message
+        history = self.generate_summarization(messages, k="20-30", header="сводки")
+        response = self.language_model.model.create_chat_completion(
+            messages=[
+                {"role": "system",
+                 "content": self.language_model.prompt_template.format(context=context, links=links) + history},
+                {"role": "user",
+                 "content": question}],
+            temperature=0.3,
+            max_tokens=3000,
         )
 
         return response['choices'][0]['message']['content']
