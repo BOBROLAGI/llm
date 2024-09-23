@@ -2,7 +2,6 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-#херово работает вообще всегда
 class Summarizer:
     def __init__(self, model_name: str = "IlyaGusev/rugpt3medium_sum_gazeta"):
         self.model_name = model_name
